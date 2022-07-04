@@ -16,18 +16,14 @@ export function extractEntries(
     throw new Error("Please specify the `output.filename` in your webpack config.");
   }
 
-  if (!background?.scripts) {
+  if (!background?.service_worker) {
     throw new TypeError(bgScriptManifestRequiredMsg.get());
   }
 
-  const bgScriptFileNames = background.scripts;
+  const bgScriptFileName = background.service_worker;
   const toRemove = (filename as string).replace("[name]", "");
 
-  const bgWebpackEntry = Object.keys(webpackEntry).find((entryName) =>
-    bgScriptFileNames.some((bgManifest) => bgManifest.replace(toRemove, "") === entryName),
-  );
-
-  if (!bgWebpackEntry) {
+  if (!bgScriptFileName) {
     throw new TypeError(bgScriptEntryErrorMsg.get());
   }
 
@@ -39,7 +35,7 @@ export function extractEntries(
       )
     : null;
   return {
-    background: bgWebpackEntry,
+    background: bgScriptFileName,
     contentScript: contentEntries as string[],
     extensionPage: null,
   };
