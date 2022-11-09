@@ -9,7 +9,7 @@
     "moduleResolution": "node",
     "allowJs": true,
     "typeRoots": ["typings/index.d.ts"],
-    "types": ["node", "mocha", "webpack", "webpack-sources"]
+    "types": ["node", "mocha", "webpack", "webpack-sources", "chrome"]
   },
   "presets": [
     "env",

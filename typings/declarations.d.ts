@@ -65,7 +65,7 @@ declare interface IExtensionManifest {
   icons?: {
     [key: string]: string;
   };
-  browser_action?: {
+  action?: {
     default_popup: string;
   };
   content_scripts?: [

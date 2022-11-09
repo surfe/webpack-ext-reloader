@@ -9,7 +9,7 @@ export function extractEntries(
   webpackOutput: Compiler["options"]["output"] = {},
 ): IEntriesOption {
   const manifestJson = JSON.parse(readFileSync(manifestPath).toString()) as IExtensionManifest;
-  const { background, content_scripts } = manifestJson;
+  const { background, content_scripts: contentScripts, action } = manifestJson;
   const { filename } = webpackOutput;
 
   if (!filename) {
@@ -20,23 +20,31 @@ export function extractEntries(
     throw new TypeError(bgScriptManifestRequiredMsg.get());
   }
 
-  const bgScriptFileName = background.service_worker;
+  const bgScriptFileNames = [background.service_worker];
   const toRemove = (filename as string).replace("[name]", "");
 
-  if (!bgScriptFileName) {
+  const bgWebpackEntry = Object.keys(webpackEntry).find((entryName) =>
+    bgScriptFileNames.some((bgManifest) => bgManifest.replace(toRemove, "") === entryName),
+  );
+  if (!bgWebpackEntry) {
     throw new TypeError(bgScriptEntryErrorMsg.get());
   }
 
-  const contentEntries: unknown = content_scripts
+  const extensionPageFileName = action?.default_popup || "";
+  const extensionPageEntry = Object.keys(webpackEntry).find(
+    (entryName) => extensionPageFileName.replace(toRemove, "") === entryName,
+  );
+
+  const contentEntries: unknown = contentScripts
     ? flatMapDeep(Object.keys(webpackEntry), (entryName) =>
-        content_scripts.map(({ js }) =>
+        contentScripts.map(({ js }) =>
           js.map((contentItem) => contentItem.replace(toRemove, "")).filter((contentItem) => contentItem === entryName),
         ),
       )
     : null;
   return {
-    background: bgScriptFileName,
+    background: bgWebpackEntry,
     contentScript: contentEntries as string[],
-    extensionPage: null,
+    extensionPage: extensionPageEntry,
   };
 }

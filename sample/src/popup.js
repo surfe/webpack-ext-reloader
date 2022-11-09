@@ -1,4 +1,4 @@
-console.info("Change anything here!");
+console.info("Change anything here to affect the extension popup script!");
 
 import "./style.css";
 

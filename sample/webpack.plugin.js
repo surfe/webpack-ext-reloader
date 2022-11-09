@@ -28,15 +28,15 @@ module.exports = {
       verbose: true,
     }),
     new ExtensionReloaderPlugin({
-      entries: {
-        contentScript: "content-script",
-        background: "background",
-        extensionPage: "popup",
-      },
+      // entries: {
+      //   contentScript: "content-script",
+      //   background: "background",
+      //   extensionPage: "popup",
+      // },
       port: targetBrowser === "chrome" ? 9090 : 9091,
-      reloadPage: false, // can also be true!
+      reloadPage: true, // can also be true!
       // Also possible to use
-      // manifest: resolve(__dirname, "manifest.json")
+      manifest: path.resolve(__dirname, "manifest.json"),
     }),
 
     new MiniCssExtractPlugin({ filename: "style.css" }),

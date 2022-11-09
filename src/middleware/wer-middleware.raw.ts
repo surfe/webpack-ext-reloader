@@ -5,6 +5,11 @@
 /*  This will be converted into a lodash templ., any  */
 /*  external argument must be provided using it       */
 /* -------------------------------------------------- */
+let _window: Window | null = null
+if (typeof window !== "undefined") {
+  // eslint-disable-next-line no-global-assign
+  _window = window
+}
 (function(window) {
 
   const injectionContext = this || window || {browser: null};
@@ -28,7 +33,7 @@
   } = signals;
   const { RECONNECT_INTERVAL, SOCKET_ERR_CODE_REF } = config;
 
-  const { extension, runtime, tabs } = browser;
+  const { runtime, tabs } = browser;
   const manifest = runtime.getManifest();
 
   // =============================== Helper functions ======================================= //
@@ -38,14 +43,14 @@
     date.toTimeString().replace(/.*(\d{2}:\d{2}:\d{2}).*/, "$1");
 
   // ========================== Called only on content scripts ============================== //
-  function contentScriptWorker() {
+  function contentScriptWorker(localWindow: Window) {
     runtime.sendMessage({ type: SIGN_CONNECT }).then(msg => console.info(msg));
 
     runtime.onMessage.addListener(({ type, payload }: { type: string; payload: any }) => {
       switch (type) {
         case SIGN_RELOAD:
           logger("Detected Changes. Reloading...");
-          reloadPage && window.location.reload();
+          reloadPage && localWindow.location.reload();
           break;
         case SIGN_LOG:
           console.info(payload);
@@ -58,9 +63,9 @@
 
   // ======================== Called only on background scripts ============================= //
   function backgroundWorker(socket: WebSocket) {
-    runtime.onMessage.addListener((action: { type: string; payload: any }, sender) => {
+    chrome.runtime.onMessage.addListener((action: { type: string; payload: any }, sender, sendResponse) => {
       if (action.type === SIGN_CONNECT) {
-        return Promise.resolve(formatter("Connected to Web Extension Hot Reloader"));
+        return sendResponse(formatter("Connected to Web Extension Hot Reloader"));
       }
       return true;
     });
@@ -113,7 +118,7 @@
   }
 
   // ======================== Called only on extension pages that are not the background ============================= //
-  function extensionPageWorker() {
+  function extensionPageWorker(localWindow: Window) {
     runtime.sendMessage({ type: SIGN_CONNECT }).then(msg => console.info(msg));
 
     runtime.onMessage.addListener(({ type, payload }: { type: string; payload: any }) => {
@@ -122,7 +127,7 @@
           logger("Detected Changes. Reloading...");
           // Always reload extension pages in the foreground when they change.
           // This option doesn't make sense otherwise
-          window.location.reload();
+          localWindow.location.reload();
           break;
 
         case SIGN_LOG:
@@ -136,10 +141,12 @@
   }
 
   // ======================= Bootstraps the middleware =========================== //
-  runtime.reload
-    ? extension.getBackgroundPage() === window ? backgroundWorker(new WebSocket(wsHost)) : extensionPageWorker()
-    : contentScriptWorker();
-})(window);
+  const isServiceWorker = typeof navigator !== "undefined"
+  const hasWindowContext = runtime.reload
+  hasWindowContext
+    ? isServiceWorker ? backgroundWorker(new WebSocket(wsHost)) : extensionPageWorker(injectionContext)
+    : contentScriptWorker(injectionContext);
+})(_window);
 
 /* ----------------------------------------------- */
 /* End of Webpack Hot Extension Middleware  */
